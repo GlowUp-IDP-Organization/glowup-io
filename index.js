@@ -4,7 +4,6 @@ const { Pool } = require('pg');
 const app = express();
 const port = 3000;
 
-// Configurarea conexiunii la baza de date din Docker
 const pool = new Pool({
   user: process.env.DB_USER || 'glowup_user',
   host: process.env.DB_HOST || 'main-db',
@@ -13,34 +12,35 @@ const pool = new Pool({
   port: 5432,
 });
 
+// Funcție care se rulează la pornire pentru a crea structura
+const initDB = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS inventory (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        active_ingredients VARCHAR(255)
+      );
+    `);
+    console.log("Tabelul 'inventory' este pregatit!");
+  } catch (err) {
+    console.error("Eroare la crearea tabelului:", err);
+  }
+};
+initDB();
+
 app.use(express.json());
 
-// Endpoint de test pentru a verifica starea serviciului
-app.get('/health', (req, res) => {
-  res.json({ status: "IO Service is running and ready!" });
-});
+app.get('/health', (req, res) => res.json({ status: "IO Service is running!" }));
 
-// Endpoint pentru produse
 app.get('/products', async (req, res) => {
   try {
-    // Verificăm conexiunea la baza de date cerând ora curentă de la serverul SQL
-    const dbRes = await pool.query('SELECT NOW()');
-    
-    // Returnăm un răspuns fals deocamdată, doar pentru a testa ruta
-    res.json({
-      message: "Conexiune la DB reușită!",
-      db_time: dbRes.rows[0].now,
-      data: [
-        { id: 1, name: "Cerave Hydrating Cleanser", type: "cleanser" },
-        { id: 2, name: "Paula's Choice BHA", type: "exfoliant" }
-      ]
-    });
+    const result = await pool.query('SELECT * FROM inventory');
+    res.json({ data: result.rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Eroare la conectarea cu baza de date" });
+    res.status(500).json({ error: "Eroare la citirea bazei de date." });
   }
 });
 
-app.listen(port, () => {
-  console.log(`IO Service asculta pe portul ${port}`);
-});
+app.listen(port, () => console.log(`IO Service asculta pe portul ${port}`));
