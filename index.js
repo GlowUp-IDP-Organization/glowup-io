@@ -9,7 +9,7 @@ const pool = new Pool({
   host: process.env.DB_HOST || 'main-db',
   database: process.env.DB_NAME || 'glowup_db',
   password: process.env.DB_PASSWORD || 'glowup_password',
-  port: 5432,
+  port: process.env.DB_PORT || 5432,
 });
 
 // Funcție care se rulează la pornire pentru a crea structura
