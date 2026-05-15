@@ -15,6 +15,7 @@ const pool = new Pool({
 // Funcție care se rulează la pornire pentru a crea structura
 const initDB = async () => {
   try {
+    // 1. Creăm tabelul dacă nu există
     await pool.query(`
       CREATE TABLE IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
@@ -24,8 +25,25 @@ const initDB = async () => {
       );
     `);
     console.log("Tabelul 'inventory' este pregatit!");
+
+    // 2. Verificăm dacă tabelul este gol
+    const checkRes = await pool.query('SELECT COUNT(*) FROM inventory');
+    if (parseInt(checkRes.rows[0].count) === 0) {
+      console.log("Tabelul este gol. Inseram datele de test...");
+      // 3. Populăm cu date
+      await pool.query(`
+        INSERT INTO inventory (name, category, active_ingredients) VALUES 
+        ('Glow Serum', 'Ser', 'Vitamina C, Niacinamide'),
+        ('Night Renewal', 'Crema', 'Retinol, Acid Hialuronic'),
+        ('Exfoliant Lichid', 'Toner', 'AHA, BHA, Acid Glicolic'),
+        ('Daily Moisture', 'Crema', 'Ceramide, Glicerina');
+      `);
+      console.log("Datele au fost inserate cu succes!");
+    } else {
+      console.log("Tabelul contine deja date, s-a sarit peste seeding.");
+    }
   } catch (err) {
-    console.error("Eroare la crearea tabelului:", err);
+    console.error("Eroare la initializarea bazei de date:", err);
   }
 };
 initDB();
