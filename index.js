@@ -72,18 +72,27 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// Adăugare produs pe raft
+// Adăugare produs pe raft + Auto-creare profil dacă nu există
 app.post('/shelf', async (req, res) => {
   const { username, product_id, pao_months } = req.body;
   const opened_date = new Date().toISOString().split('T')[0]; 
 
   try {
+    // În asigurarea că nu ne lovim de cheia străină, inserăm mai întâi utilizatorul în user_profiles dacă nu există deja
+    await pool.query(
+      'INSERT INTO user_profiles (username, skin_type, sensitivities) VALUES ($1, $2, $3) ON CONFLICT (username) DO NOTHING',
+      [username, 'mixt', 'niciuna']
+    );
+
+    // Acum putem insera liniștiți pe raft
     await pool.query(
       'INSERT INTO user_shelf (username, product_id, opened_date, pao_months) VALUES ($1, $2, $3, $4)',
       [username, product_id, opened_date, pao_months]
     );
+    
     res.json({ message: "Produs adaugat cu succes pe raftul tau!" });
   } catch (err) {
+    console.error("Eroare detaliata in DB:", err);
     res.status(500).json({ error: "Eroare la adaugarea produsului." });
   }
 });
